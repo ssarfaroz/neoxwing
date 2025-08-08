@@ -1,0 +1,39 @@
+{
+  "name": "@neoxwing/web",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "next": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "clsx": "latest",
+    "class-variance-authority": "latest",
+    "tailwind-merge": "latest",
+    "lucide-react": "latest",
+    "@radix-ui/react-dialog": "latest",
+    "@radix-ui/react-slot": "latest",
+    "@radix-ui/react-dropdown-menu": "latest",
+    "@radix-ui/react-label": "latest",
+    "next-auth": "latest",
+    "@prisma/client": "latest",
+    "zod": "latest",
+    "pino": "latest"
+  },
+  "devDependencies": {
+    "typescript": "latest",
+    "eslint": "latest",
+    "postcss": "latest",
+    "autoprefixer": "latest",
+    "tailwindcss": "latest",
+    "prisma": "latest",
+    "vitest": "latest",
+    "@testing-library/react": "latest",
+    "playwright": "latest"
+  }
+}

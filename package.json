@@ -1,0 +1,20 @@
+{
+  "name": "chartlab",
+  "private": true,
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev": "pnpm -r --parallel dev",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "eslint": "^8.56.0",
+    "prettier": "^3.2.5",
+    "vitest": "^1.2.2",
+    "playwright": "^1.41.2",
+    "pino": "^8.19.0",
+    "pino-pretty": "^10.3.1"
+  },
+  "packageManager": "pnpm@8.15.5"
+}
