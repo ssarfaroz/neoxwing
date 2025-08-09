@@ -23,7 +23,8 @@
     "next-auth": "latest",
     "@prisma/client": "latest",
     "zod": "latest",
-    "pino": "latest"
+    "pino": "latest",
+    "@auth/prisma-adapter": "latest"
   },
   "devDependencies": {
     "typescript": "latest",
