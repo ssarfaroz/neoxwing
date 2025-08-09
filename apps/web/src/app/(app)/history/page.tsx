@@ -1,4 +1,4 @@
-import { getServerSession } from "next-auth/next";
+import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import prisma from "@/lib/prisma";
 import {
@@ -13,8 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function HistoryPage() {
   const session = await getServerSession(authOptions);
-  const userId = session?.user?.id;
-
+  const userId = (session?.user as { id?: string } | undefined)?.id;
   if (!userId) {
     return <p>You must be logged in to view this page.</p>;
   }
