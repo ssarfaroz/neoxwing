@@ -1,0 +1,32 @@
+name: CI
+on:
+  pull_request:
+  push:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      NEXTAUTH_SECRET: test-secret
+      DATABASE_URL: file:./dev.db
+    steps:
+      - uses: actions/checkout@v4
+      - run: corepack enable
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --no-frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @neoxwing/web... exec prisma generate
+
+      - name: Build web
+        run: pnpm --filter @neoxwing/web... run --if-present build
+
+      - name: Run tests
+        run: pnpm --filter @neoxwing/web... run --if-present test

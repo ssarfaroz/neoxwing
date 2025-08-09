@@ -1,0 +1,11 @@
+{
+  "name": "neoxwing",
+  "private": true,
+  "packageManager": "pnpm@9",
+  "workspaces": ["apps/*","packages/*"],
+  "scripts": {
+    "build": "pnpm -r run build",
+    "test": "pnpm -r run test",
+    "lint": "pnpm -r run lint"
+  }
+}
