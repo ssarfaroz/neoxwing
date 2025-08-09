@@ -35,6 +35,10 @@
     "prisma": "latest",
     "vitest": "latest",
     "@testing-library/react": "latest",
-    "playwright": "latest"
+    "playwright": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "@types/node": "latest",
+    "typescript": "^5.5.0"
   }
 }
