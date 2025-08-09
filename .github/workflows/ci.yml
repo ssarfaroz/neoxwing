@@ -21,9 +21,15 @@ jobs:
           node-version: 20
           cache: pnpm
       - run: pnpm install --no-frozen-lockfile
+
       - name: Generate Prisma client
-        run: pnpm --filter @neoxwing/web... exec prisma generate --schema ./prisma/schema.prisma
+        working-directory: apps/web
+        run: npx prisma generate --schema ./prisma/schema.prisma
+
       - name: Build web
-        run: pnpm --filter @neoxwing/web... run --if-present build
+        working-directory: apps/web
+        run: pnpm run --if-present build
+
       - name: Run tests
-        run: pnpm --filter @neoxwing/web... run --if-present test
+        working-directory: apps/web
+        run: pnpm run --if-present test
