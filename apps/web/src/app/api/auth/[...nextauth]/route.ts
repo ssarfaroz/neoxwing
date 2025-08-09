@@ -2,13 +2,15 @@ import NextAuth, { type NextAuthOptions } from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import GoogleProvider from "next-auth/providers/google";
 import EmailProvider from "next-auth/providers/email";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma"; // см. примечание ниже
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as any,
   session: { strategy: "jwt" },
+  // fallback, чтобы работать и с NEXTAUTH_SECRET, и с AUTH_SECRET
+  secret: process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET,
 
-  // Подключаем провайдеры только если есть ENV — иначе пропускаем (CI не ломается)
+  // Подключаем провайдеры только если заданы ENV
   providers: [
     ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
       ? [
@@ -28,7 +30,7 @@ export const authOptions: NextAuthOptions = {
       : []),
   ],
 
-  // Прокидываем user.id в токен и в session.user
+  // Кладём id в токен и далее в session.user
   callbacks: {
     async jwt({ token, user }) {
       if (user) token.uid = (user as any).id;
