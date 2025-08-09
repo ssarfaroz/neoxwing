@@ -21,6 +21,7 @@
     "@radix-ui/react-dropdown-menu": "latest",
     "@radix-ui/react-label": "latest",
     "next-auth": "latest",
+    "@auth/prisma-adapter": "latest",
     "@prisma/client": "latest",
     "zod": "latest",
     "pino": "latest",
