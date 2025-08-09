@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import prisma from "@/lib/prisma";
-import { getServerSession } from "next-auth/next";
+import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import prisma from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
 
 const AnalyzeRequestSchema = z.object({
-  imageUrl: z.string(),
+  imageUrl: z.string().url().or(z.string().min(1)), // временно принимаем любую строку
   horizon: z.enum(["long-term", "scalp (1-2h)"]),
 });
 
 const demoResponse = {
   direction: "long",
-  entry: [100, 105],
+  entry: [100, 105] as [number, number],
   stop: 95,
   takeProfits: [112, 118],
   rr: 2.1,
@@ -21,57 +22,56 @@ const demoResponse = {
 };
 
 export async function POST(req: NextRequest) {
+  // 1) Авторизация
   const session = await getServerSession(authOptions);
-
-  if (!session || !session.user || !session.user.id) {
+  if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-
   const userId = session.user.id;
 
-  let reqBody;
+  // 2) Валидация входа
+  let body: unknown;
   try {
-    reqBody = await req.json();
-  } catch (error) {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
-
-  const validation = AnalyzeRequestSchema.safeParse(reqBody);
-
-  if (!validation.success) {
-    return NextResponse.json({ error: validation.error.format() }, { status: 400 });
+  const parsed = AnalyzeRequestSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.format() }, { status: 400 });
   }
+  const { imageUrl, horizon } = parsed.data;
 
-  const { imageUrl, horizon } = validation.data;
-
+  // 3) Создание Job + TradePlan в соответствии со схемой
   try {
-    const job = await prisma.analysisJob.create({
+    await prisma.analysisJob.create({
       data: {
         userId,
         imageRef: imageUrl,
-        horizon,
-        status: "COMPLETED",
+        status: "done",
         params: { imageUrl, horizon },
-        tradePlan: {
+        plan: {
           create: {
+            // TradePlan требует userId — подключаем того же пользователя
+            user: { connect: { id: userId } },
             direction: demoResponse.direction,
             entryLow: demoResponse.entry[0],
             entryHigh: demoResponse.entry[1],
-            stopLoss: demoResponse.stop,
-            takeProfit1: demoResponse.takeProfits[0],
-            takeProfit2: demoResponse.takeProfits[1],
+            stop: demoResponse.stop,
+            takeProfits: demoResponse.takeProfits as Prisma.InputJsonValue,
             rr: demoResponse.rr,
             confidence: demoResponse.confidence,
-            reasoning: demoResponse.reasoning.join(', '),
             timeframe: demoResponse.timeframe,
+            reasoning: demoResponse.reasoning as Prisma.InputJsonValue,
           },
         },
       },
     });
 
-    return NextResponse.json(demoResponse);
-  } catch (error) {
-    console.error("Failed to create analysis job:", error);
+    // Возвращаем демо-план (фронт рисует оверлей)
+    return NextResponse.json(demoResponse, { status: 200 });
+  } catch (err) {
+    console.error("Failed to create analysis job:", err);
     return NextResponse.json({ error: "Failed to create analysis job" }, { status: 500 });
   }
 }
