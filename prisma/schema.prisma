@@ -1,6 +1,6 @@
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "sqlite"            // в проде поменяешь на "postgresql"
+  url = env("DATABASE_URL") // берём из .env/CI
 }
 
 generator client {
@@ -13,9 +13,14 @@ model User {
   email         String?   @unique
   emailVerified DateTime?
   image         String?
+
   accounts      Account[]
   sessions      Session[]
   analysisJobs  AnalysisJob[]
+  tradePlans    TradePlan[]     // удобно иметь обратную связь
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
 
 model Account {
@@ -42,7 +47,8 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model VerificationToken {
@@ -54,30 +60,45 @@ model VerificationToken {
 }
 
 model AnalysisJob {
-  id          String    @id @default(cuid())
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  userId      String
-  user        User      @relation(fields: [userId], references: [id])
-  imageRef    String
-  horizon     String
-  status      String
-  params      Json
-  tradePlan   TradePlan?
+  id        String   @id @default(cuid())
+  userId    String
+  status    String   @default("done")
+  params    Json?
+  imageRef  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan TradePlan?
 }
 
 model TradePlan {
-  id           String    @id @default(cuid())
-  jobId        String    @unique
-  job          AnalysisJob @relation(fields: [jobId], references: [id])
-  direction    String
-  entryLow     Float
-  entryHigh    Float
-  stopLoss     Float
-  takeProfit1  Float
-  takeProfit2  Float?
-  rr           Float
-  confidence   Float
-  reasoning    String
-  timeframe    String
+  id          String   @id @default(cuid())
+  userId      String
+  jobId       String?  @unique          // 1–1 c AnalysisJob
+  direction   String
+  entryLow    Float
+  entryHigh   Float
+  stop        Float
+  takeProfits Json
+  rr          Float?
+  confidence  Float
+  timeframe   String?
+  reasoning   Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user  User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job   AnalysisJob? @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  votes StrategyVote[]
+}
+
+model StrategyVote {
+  id     String   @id @default(cuid())
+  planId String
+  name   String
+  vote   Int      // -1, 0, +1
+  weight Float
+
+  plan TradePlan @relation(fields: [planId], references: [id], onDelete: Cascade)
 }
