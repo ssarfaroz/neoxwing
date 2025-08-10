@@ -1,79 +1,64 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import prisma from "@/lib/prisma";
-import { getServerSession } from "next-auth/next";
+import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import { analyzeChart } from "@/lib/qwen";
+import type { Prisma } from "@prisma/client";
 
 const AnalyzeRequestSchema = z.object({
-  imageUrl: z.string(),
+  imageUrl: z.string().url().min(1),
   horizon: z.enum(["long-term", "scalp (1-2h)"]),
 });
 
+const demoResponse = {
+  direction: "long" as const,
+  entry: [100, 105] as [number, number],
+  stop: 95,
+  takeProfits: [112, 118],
+  rr: 2.1,
+  confidence: 0.84,
+  reasoning: ["demo output"],
+  timeframe: "1h",
+};
+
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
+  const userId = (session?.user as { id?: string } | undefined)?.id;
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  if (!session || !session.user || !session.user.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const userId = session.user.id;
-
-  let reqBody;
-  try {
-    reqBody = await req.json();
-  } catch (error) {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
-  }
-
-  const validation = AnalyzeRequestSchema.safeParse(reqBody);
-
-  if (!validation.success) {
-    return NextResponse.json({ error: validation.error.format() }, { status: 400 });
-  }
-
-  const { imageUrl, horizon } = validation.data;
+  let body: unknown;
+  try { body = await req.json(); } catch { return NextResponse.json({ error: "Invalid request body" }, { status: 400 }); }
+  const parsed = AnalyzeRequestSchema.safeParse(body);
+  if (!parsed.success) return NextResponse.json({ error: parsed.error.format() }, { status: 400 });
+  const { imageUrl, horizon } = parsed.data;
 
   try {
-    const analysisResult = await analyzeChart(imageUrl, horizon);
-
-    if (analysisResult.confidence < 0.8) {
-      return NextResponse.json(
-        {
-          error: "Analysis confidence too low.",
-          reason: `The model's confidence of ${analysisResult.confidence} is below the threshold of 0.8.`,
-        },
-        { status: 400 }
-      );
-    }
-
-    const job = await prisma.analysisJob.create({
+    await prisma.analysisJob.create({
       data: {
         userId,
         imageRef: imageUrl,
-        horizon,
-        status: "COMPLETED",
-        params: { imageUrl, horizon },
-        tradePlan: {
+        status: "done",                 // <-- правильно для схемы
+        params: { imageUrl, horizon },  // <-- horizon в JSON
+        plan: {                         // <-- связь называется plan (не tradePlan)
           create: {
-            direction: analysisResult.direction,
-            entryLow: analysisResult.entry[0],
-            entryHigh: analysisResult.entry[1],
-            stopLoss: analysisResult.stop,
-            takeProfit1: analysisResult.takeProfits[0],
-            takeProfit2: analysisResult.takeProfits[1],
-            rr: analysisResult.rr,
-            confidence: analysisResult.confidence,
-            reasoning: Array.isArray(analysisResult.reasoning) ? analysisResult.reasoning.join(', ') : analysisResult.reasoning,
-            timeframe: analysisResult.timeframe,
+            user: { connect: { id: userId } }, // TradePlan требует userId
+            direction: demoResponse.direction,
+            entryLow: demoResponse.entry[0],
+            entryHigh: demoResponse.entry[1],
+            stop: demoResponse.stop,
+            takeProfits: demoResponse.takeProfits as unknown as Prisma.InputJsonValue,
+            rr: demoResponse.rr,
+            confidence: demoResponse.confidence,
+            timeframe: demoResponse.timeframe,
+            reasoning: demoResponse.reasoning as unknown as Prisma.InputJsonValue,
           },
         },
       },
     });
 
-    return NextResponse.json(analysisResult);
-  } catch (error) {
-    console.error("Analysis process failed:", error);
-    return NextResponse.json({ error: "Failed to analyze chart." }, { status: 500 });
+    return NextResponse.json(demoResponse, { status: 200 });
+  } catch (err) {
+    console.error("Failed to create analysis job:", err);
+    return NextResponse.json({ error: "Failed to create analysis job" }, { status: 500 });
   }
 }
