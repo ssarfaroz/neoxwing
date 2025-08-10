@@ -6,7 +6,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import type { Prisma } from "@prisma/client";
 
 const AnalyzeRequestSchema = z.object({
-  imageUrl: z.string().min(1),
+  imageUrl: z.string().url().min(1),
   horizon: z.enum(["long-term", "scalp (1-2h)"]),
 });
 
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // 2) JSON + валидация
+  // 2) Разбор и валидация запроса
   let body: unknown;
   try {
     body = await req.json();
@@ -42,17 +42,17 @@ export async function POST(req: NextRequest) {
   }
   const { imageUrl, horizon } = parsed.data;
 
-  // 3) Сохранение в БД (AnalysisJob + TradePlan)
+  // 3) Сохранение результата (AnalysisJob + связанный TradePlan через поле "plan")
   try {
     await prisma.analysisJob.create({
       data: {
         userId,
         imageRef: imageUrl,
         status: "done", // как в Prisma-схеме
-        params: { imageUrl, horizon },
+        params: { imageUrl, horizon }, // horizon хранится в JSON-поле params
         plan: {
           create: {
-            user: { connect: { id: userId } }, // userId обязателен в TradePlan
+            user: { connect: { id: userId } }, // TradePlan требует userId
             direction: demoResponse.direction,
             entryLow: demoResponse.entry[0],
             entryHigh: demoResponse.entry[1],
@@ -67,7 +67,6 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Возвращаем структурированный ответ (пока демо)
     return NextResponse.json(demoResponse, { status: 200 });
   } catch (err) {
     console.error("Failed to create analysis job:", err);
