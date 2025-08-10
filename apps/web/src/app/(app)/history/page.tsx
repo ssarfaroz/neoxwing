@@ -1,4 +1,4 @@
-import { getServerSession } from "next-auth/next";
+import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import prisma from "@/lib/prisma";
 import {
@@ -13,7 +13,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function HistoryPage() {
   const session = await getServerSession(authOptions);
-  const userId = session?.user?.id;
+  // безопасно достаём userId (без падений типов в CI)
+  const userId = (session?.user as { id?: string } | undefined)?.id;
 
   if (!userId) {
     return <p>You must be logged in to view this page.</p>;
@@ -21,8 +22,9 @@ export default async function HistoryPage() {
 
   const jobs = await prisma.analysisJob.findMany({
     where: { userId },
-    include: { tradePlan: true },
+    include: { plan: true }, // связь называется "plan", не "tradePlan"
     orderBy: { createdAt: "desc" },
+    take: 100,
   });
 
   return (
@@ -42,14 +44,23 @@ export default async function HistoryPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {jobs.map((job) => (
-                <TableRow key={job.id}>
-                  <TableCell>{new Date(job.createdAt).toLocaleDateString()}</TableCell>
-                  <TableCell>{job.horizon}</TableCell>
-                  <TableCell>{job.tradePlan?.direction || "N/A"}</TableCell>
-                  <TableCell>{job.status}</TableCell>
-                </TableRow>
-              ))}
+              {jobs.map((job) => {
+                const params = (job.params ?? {}) as Record<string, unknown>;
+                const horizon =
+                  typeof params.horizon === "string" ? params.horizon : "—";
+                const direction = job.plan?.direction ?? "N/A";
+
+                return (
+                  <TableRow key={job.id}>
+                    <TableCell>
+                      {new Date(job.createdAt).toLocaleString()}
+                    </TableCell>
+                    <TableCell>{horizon}</TableCell>
+                    <TableCell>{direction}</TableCell>
+                    <TableCell>{job.status}</TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </CardContent>
