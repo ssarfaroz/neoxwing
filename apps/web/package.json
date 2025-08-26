@@ -12,7 +12,7 @@
     "next": "latest",
     "react": "latest",
     "react-dom": "latest",
-
+    "openai": "latest",
     "clsx": "latest",
     "class-variance-authority": "latest",
     "tailwind-merge": "latest",
@@ -21,7 +21,6 @@
     "@radix-ui/react-slot": "latest",
     "@radix-ui/react-dropdown-menu": "latest",
     "@radix-ui/react-label": "latest",
-
     "next-auth": "latest",
     "@auth/prisma-adapter": "latest",
     "@prisma/client": "latest",
