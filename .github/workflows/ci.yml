@@ -2,6 +2,7 @@ name: CI
 on:
   pull_request:
   push:
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -11,11 +12,19 @@ jobs:
       NEXTAUTH_SECRET: test-secret
       NEXTAUTH_URL: http://localhost:3000
       DATABASE_URL: file:./dev.db
+
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      OPENROUTER_BASE: ${{ secrets.OPENROUTER_BASE }}
+      QWEN_VL_MODEL: ${{ secrets.QWEN_VL_MODEL }}
+      OPENROUTER_HTTP_REFERER: ${{ secrets.OPENROUTER_HTTP_REFERER }}
+      OPENROUTER_X_TITLE: ${{ secrets.OPENROUTER_X_TITLE }}
+
     steps:
       - uses: actions/checkout@v4
       - run: corepack enable
       - uses: pnpm/action-setup@v4
-        with: { version: 9 }
+        with:
+          version: 9
       - uses: actions/setup-node@v4
         with:
           node-version: 20

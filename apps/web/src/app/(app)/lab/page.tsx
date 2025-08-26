@@ -1,116 +1,184 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select } from "@/components/ui/select";
-import CanvasOverlay from "@/components/canvas-overlay";
+
+type Horizon = "long-term" | "scalp (1-2h)";
+
+type AnalyzeResponse = {
+  direction: "long" | "short";
+  entry: [number, number];
+  stop: number;
+  takeProfits: number[];
+  rr?: number;
+  confidence?: number;
+  reasoning?: string[] | string;
+  timeframe?: string;
+};
 
 export default function LabPage() {
-  const [image, setImage] = useState<string | null>(null);
-  const [horizon, setHorizon] = useState("long-term");
-  const [analysis, setAnalysis] = useState<any>(null);
+  const [imageUrl, setImageUrl] = useState("");
+  const [horizon, setHorizon] = useState<Horizon>("scalp (1-2h)");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<AnalyzeResponse | null>(null);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      if (file.size > 4 * 1024 * 1024) {
-        alert("File size should be less than 4MB");
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+  async function onAnalyze() {
+    setError(null);
+    setResult(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!image) {
-      alert("Please upload an image.");
+    if (!imageUrl.trim()) {
+      setError("Please paste an image URL of the chart.");
       return;
     }
 
     setLoading(true);
-    setAnalysis(null);
-
     try {
-      const response = await fetch("/api/analyze", {
+      const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageUrl: image, horizon }),
+        body: JSON.stringify({ imageUrl: imageUrl.trim(), horizon }),
       });
 
-      if (!response.ok) {
-        throw new Error("Analysis failed");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error ?? `Request failed with ${res.status}`);
       }
 
-      const data = await response.json();
-      setAnalysis(data);
-    } catch (error) {
-      console.error(error);
-      alert("An error occurred during analysis.");
+      const data: AnalyzeResponse = await res.json();
+      setResult(data);
+    } catch (e: any) {
+      setError(e?.message ?? "Unexpected error");
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Analysis Lab</h1>
-      <div className="grid md:grid-cols-2 gap-8">
-        <div>
-          <form onSubmit={handleSubmit}>
-            <Card>
-              <CardHeader>
-                <CardTitle>Upload Chart</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="image">Image (PNG/JPG, max 4MB)</Label>
-                  <Input id="image" type="file" accept="image/png, image/jpeg" onChange={handleImageUpload} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="horizon">Horizon</Label>
-                  <Select id="horizon" value={horizon} onChange={(e) => setHorizon(e.target.value)}>
-                    <option value="long-term">Long-term</option>
-                    <option value="scalp (1-2h)">Scalp (1-2h)</option>
-                  </Select>
-                </div>
-                <Button type="submit" disabled={loading || !image}>
-                  {loading ? "Analyzing..." : "Analyze"}
-                </Button>
-              </CardContent>
-            </Card>
-          </form>
-        </div>
-        <div>
-          <Card>
-            <CardHeader>
-              <CardTitle>Result</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {image && (
-                <div className="relative">
-                  <img src={image} alt="Chart preview" className="w-full h-auto" />
-                  {analysis && <CanvasOverlay analysis={analysis} />}
-                </div>
-              )}
-              {analysis && (
-                <div className="mt-4">
-                  <pre>{JSON.stringify(analysis, null, 2)}</pre>
-                </div>
-              )}
-              {loading && <p>Loading...</p>}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+    <div className="container mx-auto max-w-4xl p-4 space-y-6">
+      {/* Form */}
+      <Card>
+        <CardHeader>
+          <CardTitle>ChartLab</CardTitle>
+          <CardDescription>
+            Paste a chart screenshot URL, choose horizon, and get a structured
+            trade plan from the AI.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Chart image URL</label>
+            <Input
+              placeholder="https://example.com/my-tradingview-screenshot.png"
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Horizon</label>
+            <select
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              value={horizon}
+              onChange={(e) => setHorizon(e.target.value as Horizon)}
+            >
+              <option value="scalp (1-2h)">Scalp (1–2h)</option>
+              <option value="long-term">Long-term</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Button onClick={onAnalyze} disabled={loading}>
+              {loading ? "Analyzing…" : "Analyze"}
+            </Button>
+            {error && <span className="text-sm text-red-500">{error}</span>}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Preview */}
+      {imageUrl && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Preview</CardTitle>
+            <CardDescription>Your provided chart image</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={imageUrl}
+              alt="Chart preview"
+              className="w-full rounded-md border object-contain"
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Result */}
+      {result && (
+        <Card>
+          <CardHeader>
+            <CardTitle>AI Trade Plan</CardTitle>
+            <CardDescription>
+              Structured output from the analysis endpoint
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div>
+              <span className="font-medium">Direction:</span>{" "}
+              <span className="uppercase">{result.direction}</span>
+            </div>
+            <div>
+              <span className="font-medium">Entry zone:</span>{" "}
+              {result.entry[0]} – {result.entry[1]}
+            </div>
+            <div>
+              <span className="font-medium">Stop-loss:</span> {result.stop}
+            </div>
+            <div>
+              <span className="font-medium">Take profits:</span>{" "}
+              {result.takeProfits.join(", ")}
+            </div>
+            {typeof result.rr === "number" && (
+              <div>
+                <span className="font-medium">R/R:</span> {result.rr}
+              </div>
+            )}
+            {typeof result.confidence === "number" && (
+              <div>
+                <span className="font-medium">Confidence:</span>{" "}
+                {(result.confidence * 100).toFixed(0)}%
+              </div>
+            )}
+            {result.timeframe && (
+              <div>
+                <span className="font-medium">Timeframe:</span>{" "}
+                {result.timeframe}
+              </div>
+            )}
+            {result.reasoning && (
+              <div className="pt-2">
+                <span className="font-medium">Reasoning:</span>
+                <ul className="list-disc pl-5">
+                  {Array.isArray(result.reasoning) ? (
+                    result.reasoning.map((r, i) => <li key={i}>{r}</li>)
+                  ) : (
+                    <li>{result.reasoning}</li>
+                  )}
+                </ul>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

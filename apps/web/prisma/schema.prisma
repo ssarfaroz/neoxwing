@@ -1,12 +1,10 @@
-// apps/web/prisma/schema.prisma
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"            // в проде поменяешь на "postgresql"
-  url      = env("DATABASE_URL") // берём из .env/CI
+  provider = "sqlite"            // в проде сменишь на postgresql
+  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -99,7 +97,7 @@ model StrategyVote {
   id     String   @id @default(cuid())
   planId String
   name   String
-  vote   Int      // -1, 0, +1
+  vote   Int
   weight Float
 
   plan TradePlan @relation(fields: [planId], references: [id], onDelete: Cascade)

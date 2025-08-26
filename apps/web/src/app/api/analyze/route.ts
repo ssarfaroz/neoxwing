@@ -37,11 +37,11 @@ export async function POST(req: NextRequest) {
       data: {
         userId,
         imageRef: imageUrl,
-        status: "done",                   // соответствие схеме
-        params: { imageUrl, horizon },   // horizon сохраняем в JSON
-        plan: {                          // связь называется plan (не tradePlan)
+        status: "done",                 // <-- правильно для схемы
+        params: { imageUrl, horizon },  // <-- horizon в JSON
+        plan: {                         // <-- связь называется plan (не tradePlan)
           create: {
-            user: { connect: { id: userId } },
+            user: { connect: { id: userId } }, // TradePlan требует userId
             direction: demoResponse.direction,
             entryLow: demoResponse.entry[0],
             entryHigh: demoResponse.entry[1],
