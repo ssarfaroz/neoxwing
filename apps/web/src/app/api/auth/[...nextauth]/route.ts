@@ -7,34 +7,17 @@ import prisma from "@/lib/prisma";
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as any,
   session: { strategy: "jwt" },
-  secret: process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET,
-
   providers: [
     ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
-      ? [GoogleProvider({
-          clientId: process.env.GOOGLE_CLIENT_ID!,
-          clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-        })]
+      ? [GoogleProvider({ clientId: process.env.GOOGLE_CLIENT_ID!, clientSecret: process.env.GOOGLE_CLIENT_SECRET! })]
       : []),
     ...(process.env.EMAIL_SERVER && process.env.EMAIL_FROM
-      ? [EmailProvider({
-          server: process.env.EMAIL_SERVER!,
-          from: process.env.EMAIL_FROM!,
-        })]
+      ? [EmailProvider({ server: process.env.EMAIL_SERVER!, from: process.env.EMAIL_FROM! })]
       : []),
   ],
-
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) token.uid = (user as any).id;
-      return token;
-    },
-    async session({ session, token }) {
-      if (session.user && token?.uid) {
-        (session.user as any).id = token.uid as string;
-      }
-      return session;
-    },
+    async jwt({ token, user }) { if (user) token.uid = (user as any).id; return token; },
+    async session({ session, token }) { if (session.user && token?.uid) (session.user as any).id = token.uid as string; return session; },
   },
 };
 

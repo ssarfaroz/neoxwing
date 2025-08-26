@@ -22,37 +22,26 @@ const demoResponse = {
 };
 
 export async function POST(req: NextRequest) {
-  // 1) Авторизация
   const session = await getServerSession(authOptions);
   const userId = (session?.user as { id?: string } | undefined)?.id;
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  // 2) Разбор и валидация запроса
   let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
-  }
+  try { body = await req.json(); } catch { return NextResponse.json({ error: "Invalid request body" }, { status: 400 }); }
   const parsed = AnalyzeRequestSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.format() }, { status: 400 });
-  }
+  if (!parsed.success) return NextResponse.json({ error: parsed.error.format() }, { status: 400 });
   const { imageUrl, horizon } = parsed.data;
 
-  // 3) Сохранение результата (AnalysisJob + связанный TradePlan через поле "plan")
   try {
     await prisma.analysisJob.create({
       data: {
         userId,
         imageRef: imageUrl,
-        status: "done", // как в Prisma-схеме
-        params: { imageUrl, horizon }, // horizon хранится в JSON-поле params
-        plan: {
+        status: "done",                   // соответствие схеме
+        params: { imageUrl, horizon },   // horizon сохраняем в JSON
+        plan: {                          // связь называется plan (не tradePlan)
           create: {
-            user: { connect: { id: userId } }, // TradePlan требует userId
+            user: { connect: { id: userId } },
             direction: demoResponse.direction,
             entryLow: demoResponse.entry[0],
             entryHigh: demoResponse.entry[1],

@@ -12,6 +12,7 @@
     "next": "latest",
     "react": "latest",
     "react-dom": "latest",
+
     "clsx": "latest",
     "class-variance-authority": "latest",
     "tailwind-merge": "latest",
@@ -20,26 +21,25 @@
     "@radix-ui/react-slot": "latest",
     "@radix-ui/react-dropdown-menu": "latest",
     "@radix-ui/react-label": "latest",
+
     "next-auth": "latest",
     "@auth/prisma-adapter": "latest",
     "@prisma/client": "latest",
     "zod": "latest",
-    "pino": "latest",
-    "openai": "latest"
+    "pino": "latest"
   },
   "devDependencies": {
-    "typescript": "latest",
-    "eslint": "latest",
-    "postcss": "latest",
-    "autoprefixer": "latest",
-    "tailwindcss": "latest",
-    "prisma": "latest",
-    "vitest": "latest",
-    "@testing-library/react": "latest",
-    "playwright": "latest",
+    "typescript": "^5.5.0",
+    "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
-    "@types/node": "latest",
-    "typescript": "^5.5.0"
+
+    "eslint": "latest",
+    "postcss": "^8.4.38",
+    "autoprefixer": "^10.4.16",
+    "tailwindcss": "^3.4.10",
+
+    "prisma": "latest",
+    "vitest": "^3.2.4"
   }
 }
